@@ -10,6 +10,17 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+# Environment files
+.env
+
+# Node
+node_modules/
+dist/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
 # Package Files #
 *.jar
 *.war
