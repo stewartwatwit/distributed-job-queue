@@ -15,7 +15,7 @@ public class TestcontainersTest {
         new PostgreSQLContainer<>("postgres:18")
             .withDatabaseName("testdb")
             .withUsername("testuser")
-            .withPassword("M9q6l65b!");
+            .withPassword("testpassword");
 
     @Test
     void postgresContainerStarts() {
