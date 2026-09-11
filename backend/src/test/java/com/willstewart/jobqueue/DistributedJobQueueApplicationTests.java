@@ -1,4 +1,4 @@
-package com.willstewart.distributed_job_queue;
+package com.willstewart.jobqueue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
