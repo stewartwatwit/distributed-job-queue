@@ -4,7 +4,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional; 
 
-public interface JobRepository extends JpaRepository<Job, String> {
+public interface JobRepository extends JpaRepository<Job, UUID> {
     
     @Query("SELECT j FROM Job j WHERE j.status = 'PENDING' ORDER BY j.priority DESC, j.createdAt ASC")
     Optional<Job> findNextPendingJob();
