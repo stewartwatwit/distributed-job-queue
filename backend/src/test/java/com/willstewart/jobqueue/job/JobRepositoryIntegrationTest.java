@@ -10,8 +10,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import jakarta.transaction.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import com.willstewart.jobqueue.job.JobStatus.Status;
 import com.willstewart.jobqueue.job.JobType.Type;
@@ -21,9 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @Testcontainers
 @SpringBootTest 
+@Transactional
 @ActiveProfiles("test")
 public class JobRepositoryIntegrationTest {
 
@@ -79,7 +83,7 @@ public class JobRepositoryIntegrationTest {
         assertEquals(savedJob.getEndedAt(),retrievedJob.getEndedAt());
     }
 
-    @Test 
+    @Test    
     void generatedUUIDsShouldBeUnique() {
         Job job1 = new Job(TEST_TYPE, TEST_PAYLOAD, TEST_PRIORITY);
         Job job2 = new Job(TEST_TYPE, TEST_PAYLOAD, TEST_PRIORITY);
@@ -90,7 +94,7 @@ public class JobRepositoryIntegrationTest {
         assertNotEquals(job1.getId(), job2.getId());
     }
     
-    @Test 
+    @Test
     void shouldInitializeNewJobWithExpectedDefaults() {
         Job job = new Job(TEST_TYPE, TEST_PAYLOAD, TEST_PRIORITY);
 
@@ -115,7 +119,7 @@ public class JobRepositoryIntegrationTest {
         assertEquals(TEST_STATUS, job.getStatus());
     }
 
-    @Test 
+    @Test
     void shouldTimestampWhenJobIsPersisted() {
         Job job = new Job(TEST_TYPE, TEST_PAYLOAD, TEST_PRIORITY);
 
@@ -128,7 +132,7 @@ public class JobRepositoryIntegrationTest {
         assertEquals(check.getCreatedAt(), check.getUpdatedAt());
     }
 
-    @Test 
+    @Test
     void shouldUpdateTimestampWhenJobIsModified() {
         Job job = new Job(TEST_TYPE, TEST_PAYLOAD, TEST_PRIORITY);
 
@@ -146,6 +150,85 @@ public class JobRepositoryIntegrationTest {
         
         assertNotNull(secondTime);
         assertTrue(firstTime.isBefore(secondTime) || firstTime.equals(secondTime));
+    }
+
+    /*
+    * Tests for the findNextPendingJob method in the JobRepository.
+    */
+
+    @Test
+    void shouldFindNextPendingJob() {
+        Job jobA = new Job(TEST_TYPE, TEST_PAYLOAD, 1);
+        Job jobB = new Job(TEST_TYPE, TEST_PAYLOAD, 10);
+        Job jobC = new Job(TEST_TYPE, TEST_PAYLOAD, 5);
+
+
+        jobRepository.saveAndFlush(jobA);
+        jobRepository.saveAndFlush(jobB);
+        jobRepository.saveAndFlush(jobC);
+
+        entityManager.clear();
+
+        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+
+        assertTrue(nextPendingJob.isPresent());
+        assertEquals(jobB.getId(), nextPendingJob.get().getId());
+    }
+
+    @Test
+    void ifEqualPriorityJobsShouldReturnOldest() {
+        Job jobA = new Job(TEST_TYPE, TEST_PAYLOAD, 1);
+        Job jobB = new Job(TEST_TYPE, TEST_PAYLOAD, 1);
+
+        jobRepository.saveAndFlush(jobA);
+        jobRepository.saveAndFlush(jobB);
+
+        entityManager.createNativeQuery(
+            "UPDATE jobs SET created_at = :createdAt WHERE id = :id"
+        )
+        .setParameter("createdAt", Instant.parse("2026-01-01T10:00:00Z"))
+        .setParameter("id", jobA.getId())
+        .executeUpdate();
+
+        entityManager.createNativeQuery(
+            "UPDATE jobs SET created_at = :createdAt WHERE id = :id"
+        )
+        .setParameter("createdAt", Instant.parse("2026-01-01T11:00:00Z"))
+        .setParameter("id", jobB.getId())
+        .executeUpdate();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+
+        assertTrue(nextPendingJob.isPresent());
+        assertEquals(jobA.getId(), nextPendingJob.get().getId());
+    }
+
+    @Test
+    void nonPendingJobsShouldNotBeReturned() {
+        Job jobA = new Job(TEST_TYPE, TEST_PAYLOAD, 10);
+        Job jobB = new Job(TEST_TYPE, TEST_PAYLOAD, 1);
+        jobA.setStatus(Status.COMPLETED);
+
+        jobRepository.saveAndFlush(jobA);
+        jobRepository.saveAndFlush(jobB);
+
+        entityManager.clear();
+
+        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+
+        assertEquals(jobB.getId(), nextPendingJob.get().getId());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenNoJobsExist() {
+        entityManager.clear();
+
+        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+
+        assertTrue(nextPendingJob.isEmpty());
     }
 
 }
