@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.willstewart.jobqueue.job.JobStatus.Status;
 import com.willstewart.jobqueue.job.JobType.Type;
+import com.willstewart.jobqueue.dto.JobRequest;
 
 @Entity
 @Table(name= "jobs")
@@ -70,11 +71,11 @@ public class Job {
         this.updatedAt = now();
     }
 
-    public Job(Type type, String payload, int priority) {
-        this.type = type;
+    public Job(JobRequest request) {
+        this.type = request.getType();
         this.status = Status.PENDING;
-        this.payload = payload;
-        this.priority = priority;
+        this.payload = request.getPayload();
+        this.priority = request.getPriority();
     }
 
     public UUID getId() {
@@ -115,6 +116,14 @@ public class Job {
 
     public Instant getEndedAt() {
         return endedAt;
+    }
+
+    public void setStartedAt(Instant startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public void setEndedAt(Instant endedAt) {
+        this.endedAt = endedAt;
     }
 
     public int getPriority() {
