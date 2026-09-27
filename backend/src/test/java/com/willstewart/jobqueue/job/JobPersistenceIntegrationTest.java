@@ -1,7 +1,9 @@
 package com.willstewart.jobqueue.job;
 
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.junit.jupiter.Container;
 
 import com.willstewart.jobqueue.dto.JobRequest;
 import com.willstewart.jobqueue.job.JobStatus.Status;
@@ -10,6 +12,8 @@ import com.willstewart.jobqueue.job.JobType.Type;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -35,6 +39,20 @@ public class JobPersistenceIntegrationTest {
     private static final String TEST_PAYLOAD = "{\"test\": \"value\"}";
 
     private static final int TEST_PRIORITY = 1;
+
+    @Container
+    static PostgreSQLContainer<?> postgresContainer =
+        new PostgreSQLContainer<>("postgres:18")
+            .withDatabaseName("testdb")
+            .withUsername("testuser")
+            .withPassword("testpassword");
+
+    @DynamicPropertySource
+    static void registerPgProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgresContainer::getUsername);
+        registry.add("spring.datasource.password", postgresContainer::getPassword);
+    }
 
     @Autowired
     private JobRepository jobRepository;

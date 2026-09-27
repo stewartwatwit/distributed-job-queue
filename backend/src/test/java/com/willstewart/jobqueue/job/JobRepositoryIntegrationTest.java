@@ -20,6 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -160,7 +161,7 @@ public class JobRepositoryIntegrationTest {
         assertTrue(nextPendingJob.isEmpty());
     }
 
-    @Test 
+    @Test
     void shouldReturnJobWithLowerUUIDWhenPrioritiesAndCreatedAtAreEqual() {
         Job jobA = new Job(createTestRequest());
         Job jobB = new Job(createTestRequest());
@@ -187,14 +188,22 @@ public class JobRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
+        UUID expectedId = (UUID) entityManager.createNativeQuery(
+            """
+            SELECT id
+            FROM jobs
+            WHERE id IN (:idA, :idB)
+            ORDER BY id ASC
+            LIMIT 1
+            """
+        )
+        .setParameter("idA", jobA.getId())
+        .setParameter("idB", jobB.getId())
+        .getSingleResult();
+
         Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
 
         assertTrue(nextPendingJob.isPresent());
-
-        if (jobA.getId().compareTo(jobB.getId()) > 0) {
-            assertEquals(jobB.getId(), nextPendingJob.get().getId());
-        } else {
-            assertEquals(jobA.getId(), nextPendingJob.get().getId());
-        }
+        assertEquals(expectedId, nextPendingJob.get().getId());
     }
 }
