@@ -17,11 +17,13 @@ public class JobService {
         this.jobRepository = jobRepository;
     }
 
-    public void submitJob(JobRequest jobRequest) {
+    public Job submitJob(JobRequest jobRequest) {
 
         Job job = new Job(jobRequest);
 
         jobRepository.save(job);
+
+        return job;
     }
 
     public Job getJob(UUID jobId) {
@@ -64,6 +66,7 @@ public class JobService {
         }
         if(currAttempt >= MAX_ATTEMPTS) {
             job.setStatus(Status.FAILED);
+            job.setEndedAt(java.time.Instant.now());
             jobRepository.save(job);
             return;
         }
