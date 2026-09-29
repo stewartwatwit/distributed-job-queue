@@ -4,7 +4,11 @@ import org.springframework.stereotype.Service;
 import com.willstewart.jobqueue.dto.JobRequest;
 import com.willstewart.jobqueue.job.JobStatus.Status;
 
+import jakarta.transaction.Transactional;
+
 import java.util.UUID;
+import java.time.Instant;
+import java.util.Optional;
 
 @Service
 public class JobService {
@@ -33,8 +37,20 @@ public class JobService {
         });
     }
 
-    public void claimNextJob() {
-        
+    @Transactional
+    public Optional<Job> claimNextJob() {
+        Optional<Job> optionalJob = jobRepository.findAndLockNextPendingJob();
+
+        if (optionalJob.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Job job = optionalJob.get();
+
+        job.setStatus(Status.RUNNING);
+        job.setStartedAt(Instant.now());
+
+        return Optional.of(job);
     }
 
     public void completeJob(UUID jobID) {
