@@ -85,7 +85,7 @@ public class JobRepositoryIntegrationTest {
 
         entityManager.clear();
 
-        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+        Optional<Job> nextPendingJob = jobRepository.findAndLockNextPendingJob();
 
         assertTrue(nextPendingJob.isPresent());
         assertEquals(jobB.getId(), nextPendingJob.get().getId());
@@ -122,7 +122,7 @@ public class JobRepositoryIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+        Optional<Job> nextPendingJob = jobRepository.findAndLockNextPendingJob();
 
         assertTrue(nextPendingJob.isPresent());
         assertEquals(jobA.getId(), nextPendingJob.get().getId());
@@ -146,7 +146,7 @@ public class JobRepositoryIntegrationTest {
 
         entityManager.clear();
 
-        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+        Optional<Job> nextPendingJob = jobRepository.findAndLockNextPendingJob();
 
         assertTrue(nextPendingJob.isPresent());
         assertEquals(jobB.getId(), nextPendingJob.get().getId());
@@ -156,7 +156,7 @@ public class JobRepositoryIntegrationTest {
     void shouldReturnEmptyWhenNoJobsExist() {
         entityManager.clear();
 
-        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+        Optional<Job> nextPendingJob = jobRepository.findAndLockNextPendingJob();
 
         assertTrue(nextPendingJob.isEmpty());
     }
@@ -201,7 +201,7 @@ public class JobRepositoryIntegrationTest {
         .setParameter("idB", jobB.getId())
         .getSingleResult();
 
-        Optional<Job> nextPendingJob = jobRepository.findNextPendingJob();
+        Optional<Job> nextPendingJob = jobRepository.findAndLockNextPendingJob();
 
         assertTrue(nextPendingJob.isPresent());
         assertEquals(expectedId, nextPendingJob.get().getId());
