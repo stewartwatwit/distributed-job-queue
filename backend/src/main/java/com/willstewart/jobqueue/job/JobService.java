@@ -50,6 +50,8 @@ public class JobService {
         job.setStatus(Status.RUNNING);
         job.setStartedAt(Instant.now());
 
+        jobRepository.save(job);
+
         return Optional.of(job);
     }
 
